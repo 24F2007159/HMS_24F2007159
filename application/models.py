@@ -28,7 +28,7 @@ class Doctor(UserMixin, db.Model):
     qualification = db.Column(db.String(), nullable = False)
     experience = db.Column(db.Integer(), nullable = False)
     fee = db.Column(db.Integer(), nullable = False)
-    flagged = db.Column(db.Integer(), nullable = False)
+    flagged = db.Column(db.Integer(), nullable = False,default = 0)
     specialization = db.Column(db.String(), nullable = False)
     designation = db.Column(db.String(), nullable = False)
     registration_num = db.Column(db.String(), nullable = False)
@@ -47,7 +47,7 @@ class Patient(UserMixin, db.Model):
     address = db.Column(db.String(), nullable = False)
     contact_num = db.Column(db.Integer(), nullable = False)
     medical_history = db.Column(db.String(), nullable = False)
-    flagged = db.Column(db.Integer(), nullable = False)
+    flagged = db.Column(db.Integer(), nullable = False, default = 0)
     patient_id = db.Column(db.Integer(), db.ForeignKey("user.id"), nullable = False)
     appointment = db.relationship('Appointment', backref = 'patient')
 
