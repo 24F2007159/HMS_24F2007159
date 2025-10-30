@@ -1,11 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .nav-tabs {
+            background-color: #f5f5f5;
+            border-bottom: 2px solid #dddddd;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .nav-tabs .nav-link { color: #1c3faa; }
+        .nav-tabs .nav-link.active {
+            background-color: #1c3faa;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-    <H1>Welcome to Admin Dashboard - Your Bird's eyeview of HMS Operations</H1>
+    <div class="text-bg-success p-3 text-center fs-4 fw-bold">
+        HOSPITAL MANAGEMENT SYSTEM – ADMIN DASHBOARD
+    </div>
+
+    <ul class="nav nav-tabs justify-content-center">
+        <li class="nav-item"><a class="nav-link active" href="/admindashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/createdoctor">Add Doctor</a></li>
+        <li class="nav-item"><a class="nav-link" href="/createdept">Add Department</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin_logout">Logout</a></li>
+    </ul>
+
+    <div class="container mt-4">
+        <h3 class="text-center mb-4">Welcome, {{ admin_name }}!</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert alert-dismissible fade show" role="alert">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Doctors Table -->
+        <h4 class="mt-4">Doctors List</h4>
+        {% if doctors %}
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Doctor ID</th>
+                    <th>Name</th>
+                    <th>Specialization</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doctor in doctors %}
+                <tr>
+                    <td>{{ doctor.id }}</td>
+                    <td>{{ doctor.name }}</td>
+                    <td>{{ doctor.specialization }}</td>
+                    <td>{{ doctor.department.name }}</td>
+                    <td>{{ doctor.designation }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_doctor', doctor_id=doctor.id) }}" class="btn btn-primary btn-sm">Edit</a>
+                        <form action="{{ url_for('delete_doctor', doctor_id=doctor.id) }}" method="post" style="display:inline;">
+                          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No doctors available.</p>
+        {% endif %}
+
+        <!-- Departments Table -->
+        <h4 class="mt-5">Departments List</h4>
+        {% if departments %}
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Department ID</th>
+                    <th>Name</th>
+                    <th>Head</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td>{{ dept.id }}</td>
+                    <td>{{ dept.name }}</td>
+                    <td>{{ dept.head }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_department', department_id=dept.id) }}" class="btn btn-primary btn-sm">Edit</a>
+                        <form action="{{ url_for('delete_department', department_id=dept.id) }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this department?');">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p>No departments available.</p>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

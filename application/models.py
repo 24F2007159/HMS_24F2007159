@@ -61,9 +61,8 @@ class Treatment(UserMixin, db.Model):
 
 class Department(UserMixin, db.Model):
     id = db.Column(db.Integer(), primary_key = True)
-    name = db.Column(db.String(), nullable = False)
+    name = db.Column(db.String(), nullable = False, unique = True)
     description = db.Column(db.String(), nullable = False)
-    doctor_registration = db.Column(db.String(), nullable = False)
     doctor = db.relationship('Doctor', backref = 'department')
     
 class Appointment(UserMixin, db.Model):
