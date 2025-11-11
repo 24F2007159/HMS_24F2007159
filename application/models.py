@@ -69,9 +69,9 @@ class Appointment(UserMixin, db.Model):
     id = db.Column(db.Integer(), primary_key = True)
     appointment_date = db.Column(db.DateTime(), nullable = False)
     appointment_time = db.Column(db.Time(), nullable = False)
-    reason = db.Column(db.String(), nullable = False)
-    status = db.Column(db.String(), nullable = False)
-    patient_id = db.Column(db.Integer(), db.ForeignKey("patient.id"), nullable = False)
+    reason = db.Column(db.String(), nullable = False, default = 'Null')
+    status = db.Column(db.String(), nullable = False, default = "Available")
+    patient_id = db.Column(db.Integer(), db.ForeignKey("patient.id"), nullable = False, default = 999)
     doctor_id = db.Column(db.Integer(), db.ForeignKey("doctor.id"), nullable = False)
     treatment = db.relationship('Treatment', backref = 'appointment')
 
