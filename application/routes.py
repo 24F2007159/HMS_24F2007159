@@ -119,33 +119,98 @@ def patient_login():
 
     return render_template('patient_login.html')
 
-# ----------------------------------------------------------
-# PATIENT DASHBOARD
-# ----------------------------------------------------------
+
+# Patient Dashboard
 @app.route('/patientdashboard')
 @login_required
 def patient_dashboard():
-    # Only Patients should access this page
-    if current_user.user_role != 2:
-        return render_template('patient_login.html', error="Access denied. Only patients can access this page.")
 
-    # Fetch logged-in user's patient record
+    if current_user.user_role != 2:
+        return render_template('patient_login.html', error="Access denied.")
+
     patient = Patient.query.filter_by(username=current_user.username).first()
 
-    # Fetch appointments for this patient
+    # ALL appointments
     appointments = Appointment.query.filter_by(patient_id=patient.id).all()
 
-    # Optional: load doctor & department details
-    doctors = Doctor.query.all()
+    # --- UPCOMING appointments only ---
+    today = datetime.today().date()
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.patient_id == patient.id,
+        Appointment.status == "Booked",
+        Appointment.appointment_date >= today
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+
+    # TREATMENT HISTORY
+    treatment_history = Appointment.query.join(Treatment).filter(
+        Appointment.patient_id == patient.id
+    ).order_by(Appointment.appointment_date.desc()).all()
+
     departments = Department.query.all()
 
     return render_template(
         'patient_dashboard.html',
         patient=patient,
         appointments=appointments,
-        doctors=doctors,
-        departments=departments
+        upcoming_appointments=upcoming_appointments,     
+        departments=departments,
+        treatment_history=treatment_history,
+        current_date=datetime.today()
     )
+
+
+# ----------------------------------------------------------
+# PATIENT HISTORY PAGE (View complete medical history)
+# ----------------------------------------------------------
+@app.route('/patient/history')
+@login_required
+def patient_history_page():
+
+    # Only patients can access this
+    if current_user.user_role != 2:
+        abort(403)
+
+    patient = Patient.query.filter_by(username=current_user.username).first()
+
+    # Get ALL treatment history (sorted newest → oldest)
+    history = (
+        Treatment.query
+        .join(Appointment, Treatment.treatment_id == Appointment.id)
+        .filter(Appointment.patient_id == patient.id)
+        .order_by(Appointment.appointment_date.desc())
+        .all()
+    )
+
+    return render_template(
+        'patient_history.html',
+        patient=patient,
+        history=history
+    )
+
+# Patient Self  Edit Profile for Themselves
+@app.route('/patient/edit', methods=['GET', 'POST'])
+@login_required
+def patient_edit_self():
+    # Only patients can access
+    if current_user.user_role != 2:
+        return redirect(url_for('patient_login'))
+
+    patient = Patient.query.filter_by(username=current_user.username).first()
+
+    if request.method == 'POST':
+        patient.name = request.form.get("name")
+        patient.age = request.form.get("age")
+        patient.gender = request.form.get("gender")
+        patient.address = request.form.get("address")
+        patient.contact_num = request.form.get("contact_num")
+        patient.medical_history = request.form.get("medical_history")
+
+        db.session.commit()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for('patient_dashboard'))
+
+    return render_template("patient_edit_profile.html", patient=patient)
+
 
 # ----------------------------------------------------------
 # EDIT PATIENT (Admin Only)
@@ -252,6 +317,45 @@ def book_appointment():
     # Fallback (should not happen)
     return redirect(url_for('book_appointment'))
 
+# ----------------------------------------------------------
+# CANCEL APPOINTMENT (Patient Only – Only Future Appointments)
+# ----------------------------------------------------------
+@app.route('/cancelappointment/<int:appt_id>', methods=['POST'])
+@login_required
+def cancel_appointment(appt_id):
+
+    # Only patients should use this
+    if current_user.user_role != 2:
+        abort(403)
+
+    patient = Patient.query.filter_by(username=current_user.username).first()
+    appointment = Appointment.query.get_or_404(appt_id)
+
+    # Safety checks
+    if appointment.patient_id != patient.id:
+        abort(403)  # Cannot cancel someone else's appointment
+
+    # Must be a BOOKED upcoming appointment
+    today = datetime.today()
+    if appointment.appointment_date < today:
+        flash("You cannot cancel past appointments.", "danger")
+        return redirect(url_for('patient_dashboard'))
+
+    if appointment.status != "Booked":
+        flash("Only booked appointments can be cancelled.", "warning")
+        return redirect(url_for('patient_dashboard'))
+
+    # Perform cancellation → free the slot again
+    appointment.status = "Available"
+    appointment.patient_id = 999  # Default empty patient id
+    appointment.reason = "Cancelled by patient"
+
+    db.session.commit()
+
+    flash("Your appointment has been cancelled successfully.", "success")
+    return redirect(url_for('patient_dashboard'))
+
+
 
 
 #DOCTOR LOGIN
@@ -271,9 +375,10 @@ def doctor_login():
         if this_doctor.user_role == 1:
             login_user(this_doctor)     
            
-            return render_template('doctor_dashboard.html', u_name=u_name, id=User.id)
-    
-    return render_template('doctor_login.html')
+            return redirect(url_for('doctor_dashboard'))
+  
+    return redirect(url_for('doctor_dashboard'))
+
 # ----------------------------------------------------------
 # DOCTOR DASHBOARD
 # ----------------------------------------------------------
@@ -284,25 +389,146 @@ def doctor_dashboard():
     if current_user.user_role != 1:
         return render_template('doctor_login.html', error="Access denied. Only doctors can access this page.")
 
-    # Fetch logged-in doctor record
+    # Logged-in doctor record
     doctor = Doctor.query.filter_by(username=current_user.username).first()
 
-    # Fetch upcoming appointments for this doctor
-    appointments = Appointment.query.filter_by(doctor_id=doctor.id).order_by(Appointment.appointment_date).all()
+    # Upcoming appointments only
+    today = datetime.today().date()
+    upcoming_appointments = Appointment.query.filter(
+        Appointment.doctor_id == doctor.id,
+        Appointment.appointment_date >= today,
+        Appointment.status.in_(["Booked"])
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
 
-    # Count stats (optional summary)
-    total_appointments = len(appointments)
-    available_slots = len([a for a in appointments if a.status == "Available"])
-    booked_slots = len([a for a in appointments if a.status != "Available"])
+    # Assigned patients list (distinct)
+    assigned_patients = (
+        Patient.query.join(Appointment, Appointment.patient_id == Patient.id)
+        .filter(Appointment.doctor_id == doctor.id)
+        .distinct()
+        .all()
+    )
 
     return render_template(
         'doctor_dashboard.html',
         doctor=doctor,
-        appointments=appointments,
-        total_appointments=total_appointments,
-        available_slots=available_slots,
-        booked_slots=booked_slots
+        upcoming_appointments=upcoming_appointments,
+        assigned_patients=assigned_patients
     )
+# MARK APPOINTMENT AS COMPLETED (Doctor Only)
+@app.route('/doctor/complete/<int:appt_id>', methods=['POST'])
+@login_required
+def mark_completed(appt_id):
+    if current_user.user_role != 1:
+        abort(403)
+
+    appt = Appointment.query.get_or_404(appt_id)
+    appt.status = "Completed"
+    db.session.commit()
+
+    flash("Appointment marked as completed!", "success")
+    return redirect(url_for('doctor_dashboard'))
+
+# ----------------------------------------------------------
+# Cancel APPOINTMENT (Doctor Only)
+# ----------------------------------------------------------
+@app.route('/doctor/cancel/<int:appt_id>', methods=['POST'])
+@login_required
+def doctor_cancel_appointment(appt_id):
+    if current_user.user_role != 1:
+        abort(403)
+
+    appt = Appointment.query.get_or_404(appt_id)
+    appt.status = "Cancelled"
+    db.session.commit()
+
+    flash("Appointment cancelled.", "danger")
+    return redirect(url_for('doctor_dashboard'))
+
+# ----------------------------------------------------------
+# Update Patient History (Doctor Only)
+# ----------------------------------------------------------    
+@app.route('/doctor/update_history/<int:appt_id>', methods=['GET', 'POST'])
+@login_required
+def update_history(appt_id):
+    if current_user.user_role != 1:
+        abort(403)
+
+    appt = Appointment.query.get_or_404(appt_id)
+
+    if request.method == 'POST':
+        # Fetch fields
+        visit_type = request.form.get("visit_type")
+        test_done = request.form.get("test_done")
+        diagnosis = request.form.get("diagnosis")
+        prescription = request.form.get("prescription")
+        notes = request.form.get("notes")
+
+        medicine1 = request.form.get("medicine1")
+        medicine2 = request.form.get("medicine2")
+        medicine3 = request.form.get("medicine3")
+
+        # Combine all data into a readable string
+        combined_notes = f"""
+Visit Type: {visit_type}
+Test Done: {test_done}
+
+Diagnosis:
+{diagnosis}
+
+Prescription:
+{prescription}
+
+Medicines:
+- {medicine1}
+- {medicine2}
+- {medicine3}
+
+Additional Notes:
+{notes}
+        """.strip()
+
+        # Save Treatment
+        treatment = Treatment(
+            diagnosis=diagnosis,
+            prescription=prescription,
+            notes=combined_notes,
+            treatment_id=appt.id
+        )
+        db.session.add(treatment)
+
+        # Mark appointment completed
+        appt.status = "Completed"
+        db.session.commit()
+
+        flash("Patient history updated successfully!", "success")
+        return redirect(url_for('doctor_dashboard'))
+
+    return render_template('update_history.html', appt=appt)
+
+
+# ----------------------------------------------------------
+# view PATIENT History (Doctor Only)
+# ----------------------------------------------------------
+@app.route('/doctor/patient_history/<int:patient_id>')
+@login_required
+def doctor_patient_history(patient_id):
+    if current_user.user_role != 1:
+        abort(403)
+
+    patient = Patient.query.get_or_404(patient_id)
+
+    history = (
+        Treatment.query
+        .join(Appointment, Treatment.treatment_id == Appointment.id)
+        .filter(Appointment.patient_id == patient.id)
+        .all()
+    )
+
+    return render_template('doctor_patient_history.html',
+                           patient=patient,
+                           history=history)
+
+
 
 
 # Create Departments
@@ -324,14 +550,10 @@ def create_dept():
                 new_dept = Department(name = name, description = desc)
                 db.session.add(new_dept)
                 db.session.commit()
-                doctors = Doctor.query.all()
-                departments = Department.query.all()
-                admin_name = current_user.username
-                return render_template('admin_dashboard.html', doctors=doctors, departments=departments, admin_name=admin_name)
+                # Use PRG pattern and ensure consistent dashboard context
+                return redirect(url_for('admin_dashboard'))
     return render_template('create_department.html')
 
-
-# CREATE DOCTOR ROUTE (Admin Only)
 
 @app.route('/createdoctor', methods=['GET', 'POST'])
 @login_required
@@ -385,11 +607,8 @@ def create_doctor():
 
         db.session.add(new_doctor)
         db.session.commit()
-        doctors = Doctor.query.all()
-        departments = Department.query.all()
-        admin_name = current_user.username
-
-        return render_template('admin_dashboard.html', doctors=doctors, departments=departments, admin_name=admin_name)
+        # Use PRG pattern and ensure consistent dashboard context
+        return redirect(url_for('admin_dashboard'))
 
     return render_template('create_doctor.html', departments=departments)
 
@@ -726,3 +945,5 @@ def department_details(dep_id):
     doctors = Doctor.query.filter_by(department_id=dep_id).all()
 
     return render_template('department_details.html', department=department, doctors=doctors)
+
+

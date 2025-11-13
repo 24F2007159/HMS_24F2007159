@@ -42,6 +42,14 @@
     </ul>
 
     <div class="container mt-4">
+        {# Provide safe defaults to avoid UndefinedError if route forgets fields #}
+        {% set totals = totals or {'doctors': 0, 'patients': 0, 'departments': 0, 'appointments': 0} %}
+        {% set upcoming_appointments = upcoming_appointments or [] %}
+        {% set past_appointments = past_appointments or [] %}
+        {% set doctors = doctors or [] %}
+        {% set patients = patients or [] %}
+        {% set departments = departments or [] %}
+        {% set admin_name = admin_name or 'Admin' %}
         <h3 class="text-center mb-4">Welcome, {{ admin_name }}!</h3>
 
         <!-- ✅ Flash Messages -->

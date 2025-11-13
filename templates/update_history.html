@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Patient History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="p-4">
+
+<h3 class="text-center mb-4">Update Patient History</h3>
+
+<div class="container">
+
+    <div class="card p-4 shadow">
+
+        <p><strong>Patient Name:</strong> {{ appt.patient.name }}</p>
+        <p><strong>Department:</strong> {{ appt.doctor.department.name }}</p>
+
+        <form method="post">
+
+            <div class="row mb-3">
+                <div class="col">
+                    <label>Visit Type</label>
+                    <input name="visit_type" class="form-control" placeholder="In-person / Online">
+                </div>
+                <div class="col">
+                    <label>Test Done</label>
+                    <input name="test_done" class="form-control" placeholder="ECG / Blood / X-ray">
+                </div>
+            </div>
+
+            <label>Diagnosis</label>
+            <textarea name="diagnosis" class="form-control mb-3"></textarea>
+
+            <label>Prescription</label>
+            <textarea name="prescription" class="form-control mb-3"></textarea>
+
+            <label>Medicines</label>
+            <input name="medicine1" class="form-control mb-2" placeholder="Medicine 1 – 1-0-1">
+            <input name="medicine2" class="form-control mb-2" placeholder="Medicine 2 – 0-1-0">
+            <input name="medicine3" class="form-control mb-2" placeholder="Medicine 3 – 1-0-0">
+
+            <label>Additional Notes</label>
+            <textarea name="notes" class="form-control mb-4"></textarea>
+
+            <button class="btn btn-success w-100">Save</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

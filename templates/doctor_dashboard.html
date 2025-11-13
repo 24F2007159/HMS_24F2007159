@@ -1,11 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fc; }
+        .header { background: #00b4d8; color: white; padding: 20px; text-align: center; font-size: 28px; font-weight: bold; }
+        .section-title { background: #0077ff; color: white; padding: 10px; font-size: 20px; font-weight: bold; }
+        .section-title-2 { background: #6c757d; color: white; padding: 10px; font-size: 20px; font-weight: bold; }
+    </style>
 </head>
+
 <body>
-    <H1>Welcome to Doctor Dashboard </H1>    
+    <div class="header">
+        Welcome Dr. {{ doctor.name }}
+    </div>
+
+    <div class="container mt-4">
+
+        <!-- Upcoming Appointments -->
+        <div class="section-title">Upcoming Appointments</div>
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Sr No</th>
+                    <th>Patient Name</th>
+                    <th>History</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if upcoming_appointments %}
+                    {% for appt in upcoming_appointments %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ appt.patient.name }}</td>
+
+                        <td>
+                            <a href="{{ url_for('doctor_patient_history', patient_id=appt.patient.id) }}"
+                                class="btn btn-info btn-sm">view</a>
+                        </td>
+
+                        <td>
+                            <a class="btn btn-primary btn-sm"
+                               href="{{ url_for('update_history', appt_id=appt.id) }}">
+                               update
+                            </a>
+
+                            <form action="{{ url_for('mark_completed', appt_id=appt.id) }}"
+                                  method="post" style="display:inline;">
+                                <button class="btn btn-success btn-sm">mark as complete</button>
+                            </form>
+
+                            <form action="{{ url_for('doctor_cancel_appointment', appt_id=appt.id) }}"
+                                  method="post" style="display:inline;">
+                                <button class="btn btn-danger btn-sm">cancel</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">No upcoming appointments</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Assigned Patients -->
+        <div class="section-title-2 mt-4">Assigned Patients</div>
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Patient Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if assigned_patients %}
+                    {% for pt in assigned_patients %}
+                    <tr>
+                        <td>{{ pt.name }}</td>
+                        <td>
+                            <a href="{{ url_for('doctor_patient_history', patient_id=pt.id) }}"
+                               class="btn btn-info btn-sm">view</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr><td colspan="2" class="text-center text-muted">No assigned patients</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <div class="text-center mt-4">
+            <a href="{{ url_for('appointment') }}" class="btn btn-success btn-lg">
+                Provide Availability
+            </a>
+        </div>
+
+    </div>
 </body>
 </html>
