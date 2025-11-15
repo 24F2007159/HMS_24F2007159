@@ -44,14 +44,10 @@
                         <td>
                             <a class="btn btn-primary btn-sm"
                                href="{{ url_for('update_history', appt_id=appt.id) }}">
-                               update
+                               Complete
                             </a>
 
-                            <form action="{{ url_for('mark_completed', appt_id=appt.id) }}"
-                                  method="post" style="display:inline;">
-                                <button class="btn btn-success btn-sm">mark as complete</button>
-                            </form>
-
+                            
                             <form action="{{ url_for('doctor_cancel_appointment', appt_id=appt.id) }}"
                                   method="post" style="display:inline;">
                                 <button class="btn btn-danger btn-sm">cancel</button>

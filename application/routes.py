@@ -31,7 +31,7 @@ def admin_login():
             return render_template('admin_login.html', error="Incorrect password.")
 
         login_user(this_admin)
-        return redirect(url_for('admin_dashboard'))  # ✅ redirect, not render_template()
+        return redirect(url_for('admin_dashboard'))  
 
     return render_template('admin_login.html')
 # Admin Search
@@ -159,6 +159,8 @@ def patient_dashboard():
     )
 
 
+from sqlalchemy.orm import joinedload
+
 # ----------------------------------------------------------
 # PATIENT HISTORY PAGE (View complete medical history)
 # ----------------------------------------------------------
@@ -166,18 +168,24 @@ def patient_dashboard():
 @login_required
 def patient_history_page():
 
-    # Only patients can access this
-    if current_user.user_role != 2:
-        abort(403)
+    # # Only patients can access this
+    # if current_user.user_role != 2:
+    #     abort(403)
 
     patient = Patient.query.filter_by(username=current_user.username).first()
 
-    # Get ALL treatment history (sorted newest → oldest)
+    # ✔ Load Treatment + Appointment + Doctor together (fixes date & time missing)
     history = (
         Treatment.query
+        .options(
+            joinedload(Treatment.appointment).joinedload(Appointment.doctor)
+        )
         .join(Appointment, Treatment.treatment_id == Appointment.id)
         .filter(Appointment.patient_id == patient.id)
-        .order_by(Appointment.appointment_date.desc())
+        .order_by(
+            Appointment.appointment_date.desc(),
+            Appointment.appointment_time.desc()
+        )
         .all()
     )
 
@@ -186,6 +194,7 @@ def patient_history_page():
         patient=patient,
         history=history
     )
+
 
 # Patient Self  Edit Profile for Themselves
 @app.route('/patient/edit', methods=['GET', 'POST'])
@@ -377,7 +386,7 @@ def doctor_login():
            
             return redirect(url_for('doctor_dashboard'))
   
-    return redirect(url_for('doctor_dashboard'))
+    return render_template('doctor_login.html')
 
 # ----------------------------------------------------------
 # DOCTOR DASHBOARD
@@ -450,8 +459,8 @@ def doctor_cancel_appointment(appt_id):
 @app.route('/doctor/update_history/<int:appt_id>', methods=['GET', 'POST'])
 @login_required
 def update_history(appt_id):
-    if current_user.user_role != 1:
-        abort(403)
+    # if current_user.user_role != 1:
+    #     abort(403)
 
     appt = Appointment.query.get_or_404(appt_id)
 
@@ -512,8 +521,8 @@ Additional Notes:
 @app.route('/doctor/patient_history/<int:patient_id>')
 @login_required
 def doctor_patient_history(patient_id):
-    if current_user.user_role != 1:
-        abort(403)
+    # if current_user.user_role != 1:
+    #    abort(403)
 
     patient = Patient.query.get_or_404(patient_id)
 
@@ -527,6 +536,66 @@ def doctor_patient_history(patient_id):
     return render_template('doctor_patient_history.html',
                            patient=patient,
                            history=history)
+
+# ----------------------------------------------------------
+# PATIENT SEARCH (Patients can search Doctors or Departments)
+# ----------------------------------------------------------
+@app.route('/patientsearch')
+@login_required
+def patient_search():
+    if current_user.user_role != 2:
+        abort(403)
+
+    query = request.args.get('q', '').strip()
+
+    # Search doctors by name OR specialization
+    doctors = Doctor.query.filter(
+        (Doctor.name.ilike(f"%{query}%")) |
+        (Doctor.specialization.ilike(f"%{query}%"))
+    ).all()
+
+    # Search departments for convenience (optional)
+    departments = Department.query.filter(
+        Department.name.ilike(f"%{query}%")
+    ).all()
+
+    return render_template(
+        'patient_search.html',
+        query=query,
+        doctors=doctors,
+        departments=departments
+    )
+
+
+
+# ----------------------------------------------------------
+# DOCTOR AVAILABILITY (Patient View)
+# ----------------------------------------------------------
+@app.route('/doctor/<int:doctor_id>/availability')
+@login_required
+def doctor_availability(doctor_id):
+
+    # Only patients can access
+    if current_user.user_role != 2:
+        abort(403)
+
+    doctor = Doctor.query.get_or_404(doctor_id)
+    this_doctor = User.query.filter_by(id=doctor.doctor_id).first()
+
+    # Upcoming available slots
+    today = date.today()
+    slots = Appointment.query.filter(
+        Appointment.doctor_id == this_doctor.id,
+        Appointment.status == "Available",
+        Appointment.appointment_date >= today
+    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+
+    return render_template(
+        'doctor_availability.html',
+        doctor=doctor,
+        slots=slots
+    )
+
 
 
 
@@ -687,7 +756,8 @@ def admin_dashboard():
     today = date.today()
 
     upcoming_appointments = Appointment.query.filter(
-        Appointment.appointment_date >= today
+        Appointment.appointment_date >= today,
+        Appointment.status == "Booked"
     ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
 
     past_appointments = Appointment.query.filter(
@@ -946,4 +1016,37 @@ def department_details(dep_id):
 
     return render_template('department_details.html', department=department, doctors=doctors)
 
+@app.route('/patient_history/<int:patient_id>')
+@login_required
+def patient_history(patient_id):
+    # if current_user.user_role != 1:
+    #    abort(403)
+
+    patient = Patient.query.get_or_404(patient_id)
+
+    history = (
+        Treatment.query
+        .join(Appointment, Treatment.treatment_id == Appointment.id)
+        .filter(Appointment.patient_id == patient.id)
+        .all()
+    )
+
+    return render_template('patient_history_admin.html',
+                           patient=patient,
+                           history=history)
+
+@app.route('/doctor/<int:doctor_id>')
+@login_required
+def doctor_details(doctor_id):
+
+    # Only patients can view doctor details
+    if current_user.user_role != 2:
+        abort(403)
+
+    doctor = Doctor.query.get_or_404(doctor_id)
+
+    return render_template(
+        'doctor_details.html',
+        doctor=doctor
+    )
 

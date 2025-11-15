@@ -1,47 +1,148 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1a73e8, #4a9eff);
+            padding: 18px;
+            color: white;
+            font-size: 26px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 0 0 15px 15px;
+            margin-bottom: 25px;
+        }
+
+        .result-box {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+
+        .btn-action {
+            padding: 4px 10px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+    </style>
 </head>
-<body class="p-4">
-    <h2>Search Results for "{{ query }}"</h2>
 
-    {% if not query %}
-        <p class="text-muted">Please enter a search term.</p>
-    {% endif %}
+<body>
 
+<div class="header">
+    Search Results for "{{ query }}"
+</div>
+
+<div class="container">
+
+    <!-- ----------------- DOCTORS ----------------- -->
     {% if doctors %}
-    <h4 class="mt-4">Doctors</h4>
-    <ul class="list-group">
+        <div class="section-title">Doctors</div>
         {% for d in doctors %}
-        <li class="list-group-item">{{ d.name }} — {{ d.specialization }}</li>
+        <div class="result-box">
+            <div>
+                <strong>{{ d.name }}</strong> — {{ d.specialization }}
+            </div>
+
+            <div>
+                <a href="{{ url_for('edit_doctor', doctor_id=d.id) }}" class="btn btn-primary btn-action">Edit</a>
+
+                {% if d.flagged == 0 %}
+                <form action="{{ url_for('flag_doctor', doctor_id=d.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-warning btn-action">Flag</button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('unflag_doctor', doctor_id=d.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-success btn-action">Unflag</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
         {% endfor %}
-    </ul>
     {% endif %}
 
+
+    <!-- ----------------- PATIENTS ----------------- -->
     {% if patients %}
-    <h4 class="mt-4">Patients</h4>
-    <ul class="list-group">
+        <div class="section-title">Patients</div>
         {% for p in patients %}
-        <li class="list-group-item">{{ p.name }} — {{ p.contact_num }}</li>
+        <div class="result-box">
+            <div>
+                <strong>{{ p.name }}</strong> — {{ p.contact_num }}
+            </div>
+
+            <div>
+                                <a href="{{ url_for('patient_history', patient_id=p.id) }}"
+                   class="btn btn-info btn-sm">
+                    History
+                </a>
+                <a href="{{ url_for('edit_patient', patient_id=p.id) }}" class="btn btn-primary btn-action">Edit</a>
+
+                {% if p.flagged == 0 %}
+                <form action="{{ url_for('flag_patient', patient_id=p.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-warning btn-action">Flag</button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('unflag_patient', patient_id=p.id) }}" method="post" style="display:inline;">
+                    <button class="btn btn-success btn-action">Unflag</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
         {% endfor %}
-    </ul>
     {% endif %}
 
+
+    <!-- ----------------- DEPARTMENTS ----------------- -->
     {% if departments %}
-    <h4 class="mt-4">Departments</h4>
-    <ul class="list-group">
+        <div class="section-title">Departments</div>
         {% for dep in departments %}
-        <li class="list-group-item">{{ dep.name }}</li>
+        <div class="result-box">
+            <div>
+                <strong>{{ dep.name }}</strong>
+            </div>
+
+            <div>
+                <a href="{{ url_for('edit_department', department_id=dep.id) }}" class="btn btn-primary btn-action">Edit</a>
+
+                <form action="{{ url_for('delete_department', department_id=dep.id) }}"
+                      method="post" style="display:inline;"
+                      onsubmit="return confirm('Delete this department?');">
+                    <button class="btn btn-danger btn-action">Delete</button>
+                </form>
+            </div>
+        </div>
         {% endfor %}
-    </ul>
     {% endif %}
 
-    {% if not doctors and not patients and not departments and query %}
-        <p class="text-muted mt-3">No results found.</p>
-    {% endif %}
 
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-4">Back to Dashboard</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-dark mt-4">Back to Dashboard</a>
+
+</div>
+
 </body>
 </html>
