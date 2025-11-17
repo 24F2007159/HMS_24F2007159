@@ -65,8 +65,17 @@
 
         <h5 class="mb-4">Available Slots</h5>
 
+        <!-- 🔔 SHOW MESSAGE IF NO AVAILABILITY -->
+        {% if availability|length == 0 %}
+            <div class="alert alert-warning text-center">
+                No available slots for this doctor at the moment.
+            </div>
+        {% endif %}
+
         <form method="post" action="{{ url_for('book_appointment') }}" id="bookingForm">
             <input type="hidden" name="slot_id" id="slot_id">
+
+            {% if availability|length > 0 %}
 
             <div class="row fw-bold mb-2">
                 <div class="col-3">Date</div>
@@ -93,7 +102,7 @@
                              {{ day['morning'].appointment_time.strftime('%I:%M %p') }}
                         </div>
                     {% else %}
-                        <div class="slot-box unavailable">08:00 - 12:00 am</div>
+                        <div class="slot-box unavailable">Not Available</div>
                     {% endif %}
                 </div>
 
@@ -105,7 +114,7 @@
                              {{ day['evening'].appointment_time.strftime('%I:%M %p') }}
                         </div>
                     {% else %}
-                        <div class="slot-box unavailable">04:00 - 09:00 pm</div>
+                        <div class="slot-box unavailable">Not Available</div>
                     {% endif %}
                 </div>
 
@@ -113,9 +122,11 @@
                 <div class="col-3 text-center">
                     <button class="btn btn-success btn-sm book-btn">Book</button>
                 </div>
-            </div>
 
+            </div>
             {% endfor %}
+
+            {% endif %}
 
         </form>
 
@@ -123,7 +134,7 @@
 </div>
 
 <script>
-    // slot selection behavior
+    // slot selection logic
     let selectedBox = null;
 
     document.querySelectorAll(".slot-box.available").forEach(box => {
@@ -140,7 +151,7 @@
             // show book button
             document.querySelector(".book-btn").style.display = "inline-block";
 
-            // set slot id in form
+            // set selected slot
             document.getElementById("slot_id").value = this.dataset.slot;
         });
     });

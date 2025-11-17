@@ -115,7 +115,7 @@ def patient_login():
 
         if this_patient.user_role == 2:
             login_user(this_patient)
-            return redirect(url_for('patient_dashboard'))  # ✅ Redirect instead of rendering directly
+            return redirect(url_for('patient_dashboard'))  
 
     return render_template('patient_login.html')
 
@@ -161,9 +161,9 @@ def patient_dashboard():
 
 from sqlalchemy.orm import joinedload
 
-# ----------------------------------------------------------
+
 # PATIENT HISTORY PAGE (View complete medical history)
-# ----------------------------------------------------------
+
 @app.route('/patient/history')
 @login_required
 def patient_history_page():
@@ -200,7 +200,7 @@ def patient_history_page():
 @app.route('/patient/edit', methods=['GET', 'POST'])
 @login_required
 def patient_edit_self():
-    # Only patients can access
+    
     if current_user.user_role != 2:
         return redirect(url_for('patient_login'))
 
@@ -221,9 +221,9 @@ def patient_edit_self():
     return render_template("patient_edit_profile.html", patient=patient)
 
 
-# ----------------------------------------------------------
+
 # EDIT PATIENT (Admin Only)
-# ----------------------------------------------------------
+
 @app.route('/editpatient/<int:patient_id>', methods=['GET', 'POST'])
 @login_required
 def edit_patient(patient_id):
@@ -249,23 +249,23 @@ def edit_patient(patient_id):
     return render_template('edit_patient.html', patient=patient)
 
 
-# ----------------------------------------------------------
+
 # BOOK APPOINTMENT (Patient selects Department → Doctor → Slot)
-# ----------------------------------------------------------
+
 from datetime import datetime
 from flask import jsonify
 
 @app.route('/bookappointment', methods=['GET', 'POST'])
 @login_required
 def book_appointment():
-    # ✅ Access control: Only patients
+    
     if current_user.user_role != 2:
         return render_template('patient_login.html', error="Access denied. Only patients can book appointments.")
 
     patient = Patient.query.filter_by(username=current_user.username).first()
     departments = Department.query.all()  # All available departments
 
-    # STEP 1️⃣ — Handle GET (show dropdowns)
+    
     if request.method == 'GET':
         return render_template(
             'book_appointment.html',
@@ -275,12 +275,12 @@ def book_appointment():
             slots=[]
         )
 
-    # STEP 2️⃣ — Handle POST (form submissions)
+    
     selected_department = request.form.get("department_id")
     selected_doctor = request.form.get("doctor_id")
     selected_slot = request.form.get("slot_id")
 
-    # 🔹 If department selected but no doctor yet — show doctors
+    
     if selected_department and not selected_doctor:
         doctors = Doctor.query.filter_by(department_id=selected_department).all()
         return render_template(
@@ -312,7 +312,7 @@ def book_appointment():
             slots=slots
         )
 
-    # 🔹 If slot selected — confirm booking
+    
     if selected_slot:
         slot = Appointment.query.get_or_404(selected_slot)
         slot.patient_id = patient.id
@@ -323,12 +323,12 @@ def book_appointment():
         flash("Appointment booked successfully!", "success")
         return redirect(url_for('patient_dashboard'))
 
-    # Fallback (should not happen)
+    
     return redirect(url_for('book_appointment'))
 
-# ----------------------------------------------------------
+
 # CANCEL APPOINTMENT (Patient Only – Only Future Appointments)
-# ----------------------------------------------------------
+
 @app.route('/cancelappointment/<int:appt_id>', methods=['POST'])
 @login_required
 def cancel_appointment(appt_id):
@@ -575,26 +575,52 @@ def patient_search():
 @login_required
 def doctor_availability(doctor_id):
 
-    # Only patients can access
+    # Only patients can view availability
     if current_user.user_role != 2:
         abort(403)
 
     doctor = Doctor.query.get_or_404(doctor_id)
-    this_doctor = User.query.filter_by(id=doctor.doctor_id).first()
 
-    # Upcoming available slots
-    today = date.today()
+    today = datetime.today().date()
+
+    # Fetch ALL available slots for that doctor
     slots = Appointment.query.filter(
-        Appointment.doctor_id == this_doctor.id,
+        Appointment.doctor_id == doctor.id,
         Appointment.status == "Available",
         Appointment.appointment_date >= today
-    ).order_by(Appointment.appointment_date, Appointment.appointment_time).all()
+    ).order_by(
+        Appointment.appointment_date,
+        Appointment.appointment_time
+    ).all()
+
+    # Structure slots into morning/evening per date
+    availability = []
+    date_map = {}
+
+    for s in slots:
+        d = s.appointment_date
+
+        if d not in date_map:
+            date_map[d] = {"date": d, "morning": None, "evening": None}
+
+        # Morning = before 12 PM
+        if s.appointment_time < time(12, 0):
+            date_map[d]["morning"] = s
+
+        # Evening = 4 PM onward
+        elif s.appointment_time >= time(16, 0):
+            date_map[d]["evening"] = s
+
+    # Convert dict → list sorted by date
+    availability = [date_map[d] for d in sorted(date_map.keys())]
 
     return render_template(
-        'doctor_availability.html',
+        "doctor_availability.html",
         doctor=doctor,
-        slots=slots
+        availability=availability
     )
+
+
 
 
 
