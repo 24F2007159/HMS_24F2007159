@@ -1,106 +1,168 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>New Doctor Creation</title>
-    <link rel="stylesheet" href="static/style.css">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create New Doctor</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
-          rel="stylesheet" 
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
-          crossorigin="anonymous">
+          rel="stylesheet">
+
     <style>
-      body {
-        background-color: #f0f7ff;
-        color: #333333;
-        font-family: Arial, sans-serif;
-      }
-      #doctor-form-body {
-        width: 65%;
-        margin: 40px auto;
-        background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        padding: 30px;
-      }
+        body {
+            background-color: #f0f4f9;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Top Header Banner */
+        .header-bar {
+            background: linear-gradient(90deg, #1a73e8, #4a9eff);
+            color: white;
+            padding: 20px;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        /* Center Card Box */
+        .form-card {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            padding: 35px;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .form-card h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .dashboard-link {
+            text-align: center;
+            margin-top: 14px;
+        }
+
+        .dashboard-link a {
+            text-decoration: none;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        .dashboard-link a:hover {
+            text-decoration: underline;
+        }
     </style>
-  </head>
-  <body>
-    <div id="doctor-form-body">
-      <h3 class="text-center mb-4 text-primary">New Doctor Creation</h3>
+</head>
 
-      {% if error %}
-      <div class="alert alert-danger text-center" role="alert">
-        {{ error }}
-      </div>
-      {% endif %}
+<body>
 
-      <form action="/createdoctor" method="post">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="u_name" class="form-label">Username</label>
-            <input type="text" class="form-control" id="u_name" name="u_name" placeholder="Enter username" required>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="pwd" class="form-label">Password</label>
-            <input type="password" class="form-control" id="pwd" name="pwd" placeholder="Enter password" required>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="name" class="form-label">Full Name</label>
-            <input type="text" class="form-control" id="name" name="name" placeholder="Enter doctor's full name" required>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="qual" class="form-label">Qualification</label>
-            <input type="text" class="form-control" id="qual" name="qual" placeholder="e.g., MBBS, MD" required>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label for="exp" class="form-label">Experience (Years)</label>
-            <input type="number" class="form-control" id="exp" name="exp" placeholder="Years of experience" required>
-          </div>
-          <div class="col-md-4 mb-3">
-            <label for="fee" class="form-label">Consultation Fee</label>
-            <input type="number" class="form-control" id="fee" name="fee" placeholder="Fee in INR" required>
-          </div>
-          <div class="col-md-4 mb-3">
-            <label for="dep_id" class="form-label">Select Department</label>
-            <select class="form-select" id="dep_id" name="dep_id" required>
-              <option value="">Select Department</option>
-              {% for dept in departments %}
-              <option value="{{ dept.id }}">{{ dept.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="specialization" class="form-label">Specialization</label>
-            <input type="text" class="form-control" id="specialization" name="specialization" placeholder="e.g., Cardiologist" required>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label for="desig" class="form-label">Designation</label>
-            <input type="text" class="form-control" id="desig" name="desig" placeholder="e.g., Senior Consultant" required>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label for="reg_num" class="form-label">Registration Number</label>
-          <input type="text" class="form-control" id="reg_num" name="reg_num" placeholder="Enter registration number" required>
-        </div>
-
-        <div style="text-align: center;">
-          <input type="submit" class="btn btn-primary px-4" value="Create Doctor">
-        </div>
-      </form>
-
-      <br>
-      <h5 class="text-center mt-3">
-        <a href="/admindashboard" style="text-decoration: none;">Go to Dashboard</a>
-      </h5>
+    <!-- Top Banner -->
+    <div class="header-bar">
+        HOSPITAL MANAGEMENT SYSTEM
     </div>
-  </body>
+
+    <!-- Doctor Creation Form -->
+    <div class="form-card">
+
+        <h3>Create New Doctor</h3>
+
+        {% if error %}
+        <div class="alert alert-danger text-center" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/createdoctor" method="post">
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" name="u_name"
+                           placeholder="Enter username" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" name="pwd"
+                           placeholder="Enter password" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" name="name"
+                           placeholder="Enter doctor's full name" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Qualification</label>
+                    <input type="text" class="form-control" name="qual"
+                           placeholder="e.g., MBBS, MD" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Experience (Years)</label>
+                    <input type="number" class="form-control" name="exp"
+                           placeholder="Years of experience" required>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Consultation Fee</label>
+                    <input type="number" class="form-control" name="fee"
+                           placeholder="Fee in INR" required>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Select Department</label>
+                    <select class="form-select" name="dep_id" required>
+                        <option value="">Select Department</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Specialization</label>
+                    <input type="text" class="form-control" name="specialization"
+                           placeholder="e.g., Cardiologist" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Designation</label>
+                    <input type="text" class="form-control" name="desig"
+                           placeholder="e.g., Senior Consultant" required>
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Registration Number</label>
+                <input type="text" class="form-control" name="reg_num"
+                       placeholder="Enter registration number" required>
+            </div>
+
+            <div class="text-center mt-3">
+                <button class="btn btn-primary px-5">Create Doctor</button>
+            </div>
+
+        </form>
+
+        <div class="dashboard-link">
+            Go to Dashboard → <a href="/admindashboard">Click Here</a>
+        </div>
+
+    </div>
+
+</body>
 </html>

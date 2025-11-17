@@ -1076,3 +1076,12 @@ def doctor_details(doctor_id):
         doctor=doctor
     )
 
+# DOCTOR LOGOUT
+@app.route('/doctor_logout')
+@login_required
+def doctor_logout():
+    if current_user.user_role != 1:   # Only doctors
+        abort(403)
+
+    logout_user()
+    return redirect(url_for('doctor_login'))
